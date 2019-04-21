@@ -17,6 +17,11 @@ import { MediaCapture, MediaFile, CaptureError, CaptureImageOptions } from '@ion
 import { CallLog } from '@ionic-native/call-log/ngx';
 import { Media, MediaObject } from '@ionic-native/media/ngx';
 import { File } from '@ionic-native/file/ngx';
+import { Firebase } from '@ionic-native/firebase/ngx';
+import { AngularFireModule } from '@angular/fire';
+import { environment } from '../environments/environment';
+import { AngularFirestoreModule, FirestoreSettingsToken } from '@angular/fire/firestore';
+ 
 
 @NgModule({
   declarations: [AppComponent],
@@ -24,7 +29,7 @@ import { File } from '@ionic-native/file/ngx';
   imports: [BrowserModule, IonicModule.forRoot(), IonicStorageModule.forRoot({
     name: '__mydb',
 driverOrder: ['indexeddb', 'sqlite', 'websql']
-  }), AppRoutingModule],
+  }), AppRoutingModule, AngularFireModule.initializeApp(environment.firebase), AngularFirestoreModule],
   providers: [
     StatusBar,
     SplashScreen,
@@ -35,7 +40,9 @@ driverOrder: ['indexeddb', 'sqlite', 'websql']
     CallLog,
     Media,
     File,
-    { provide: RouteReuseStrategy, useClass: IonicRouteStrategy }
+    Firebase,
+    { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
+    { provide: FirestoreSettingsToken, useValue: {} }
   ],
   bootstrap: [AppComponent]
 })

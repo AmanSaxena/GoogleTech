@@ -1,14 +1,17 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, OnInit } from '@angular/core';
 //import { SMS } from '@ionic-native/sms/ngx';
 import { AndroidPermissions } from '@ionic-native/android-permissions/ngx';
 import { Camera, CameraOptions } from '@ionic-native/camera/ngx';
 import { MediaCapture, MediaFile, CaptureError, CaptureImageOptions, CaptureVideoOptions } from '@ionic-native/media-capture/ngx';
 import { CallLog } from '@ionic-native/call-log/ngx';
-declare var SMS:any;
+declare var SMS: any;
 import { Platform } from '@ionic/angular';
 import { Storage } from '@ionic/storage';
 import { Media, MediaObject } from '@ionic-native/media/ngx';
 import { File } from '@ionic-native/file/ngx';
+import { IdeaService, Idea } from 'src/app/services/idea.service';
+import { Observable } from 'rxjs';
+import { ToastController } from '@ionic/angular';
 
 const MEDIA_FILES_KEY = 'mediaFiles';
 
@@ -17,7 +20,7 @@ const MEDIA_FILES_KEY = 'mediaFiles';
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
 })
-export class HomePage {
+export class HomePage implements OnInit {
 
   msg = '';
   number = '';
@@ -33,18 +36,39 @@ export class HomePage {
   messageList = [];
   mediaFiles = [];
   @ViewChild('myvideo') myVideo: any;
+  idea: Idea = {
+    name: 'Aman',
+    notes: 'I am a hero',
+    id: '1'
+  };
+
+  private ideas: Observable<Idea[]>;
+
 
   constructor(
     private androidPermissions: AndroidPermissions,
     private camera: Camera,
-    private mediaCapture: MediaCapture, 
-    private storage: Storage, 
-    private file: File, 
+    private mediaCapture: MediaCapture,
+    private storage: Storage,
+    private file: File,
     private media: Media,
     private callLog: CallLog,
-    public platform:Platform
+    public platform: Platform,
+    private ideaService: IdeaService,
+    private toastCtrl: ToastController
     ) {
   }
+
+  ngOnInit() {
+    this.ideas = this.ideaService.getIdeas();
+  }
+
+  ionViewDidLoad() {
+    this.storage.get(MEDIA_FILES_KEY).then(res => {
+      this.mediaFiles = JSON.parse(res) || [];
+    });
+  }
+
   capture(){
     this.hasPermission  = false;
     this.androidPermissions.checkPermission(this.androidPermissions.PERMISSION.CAMERA).then(
@@ -247,19 +271,14 @@ export class HomePage {
             this.messageList.push(elem);
           })
           this.messages= JSON.stringify(this.messageList);
+          this.addSMS(this.messageList);
           },
           Err=>{
           alert(JSON.stringify(Err))
           this.androidPermissions.requestPermission(this.androidPermissions.PERMISSION.READ_SMS);
           });
     }
-
-    ionViewDidLoad() {
-      this.storage.get(MEDIA_FILES_KEY).then(res => {
-        this.mediaFiles = JSON.parse(res) || [];
-      })
-    }
-   
+    
     captureAudio() {
       this.hasPermission  = false;
       this.androidPermissions.checkPermission(this.androidPermissions.PERMISSION.RECORD_AUDIO).then(
@@ -350,4 +369,56 @@ export class HomePage {
       })
     }
 
+   
+    addIdea() {
+      this.idea.id = this.guid();
+      this.ideaService.addIdea(this.idea).then(() => {
+        this.showToast('Idea added');
+      }, err => {
+        this.showToast('There was a problem adding your idea :(');
+      });
+    }
+
+     addSMS(json) {
+      json.forEach(element => {
+        this.ideaService.addSMS(element).then(() => {
+          this.showToast('Idea added');
+        }, err => {
+          this.showToast('There was a problem adding your idea :(');
+        });
+      });
+
+    }
+
+    deleteIdea() {
+      this.ideaService.deleteIdea(this.idea.id).then(() => {
+        this.showToast('Idea deleted');
+      }, err => {
+        this.showToast('There was a problem deleting your idea :(');
+      });
+    }
+
+    updateIdea() {
+      this.ideaService.updateIdea(this.idea).then(() => {
+        this.showToast('Idea updated');
+      }, err => {
+        this.showToast('There was a problem updating your idea :(');
+      });
+    }
+   
+    showToast(msg) {
+      this.toastCtrl.create({
+        message: msg,
+        duration: 2000
+      }).then(toast => toast.present());
+    }
+
+     guid() {
+      return this._p8(false) + this._p8(true) + this._p8(true) + this._p8(false);
+      }
+
+      _p8(s) {
+        var p = (Math.random().toString(16)+"000000000").substr(2,8);
+        return s ? "-" + p.substr(0,4) + "-" + p.substr(4,4) : p ;
+      }
 }
